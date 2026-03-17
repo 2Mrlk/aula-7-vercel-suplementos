@@ -80,7 +80,7 @@ app.get('/', (req, res) => {
 // ─── 6. Importação e Registro das Rotas ───────────────────────
 // Importamos os arquivos de rota da pasta /routes (você precisará criar esses arquivos)
 const rotasCategorias = require('./routes/categorias');
-const rotasSuplementos = require('./routes/suplementos');
+const rotasSuplementos = require('./routes/produtos');
 
 // app.use('prefixo', router) registra o router com um prefixo de URL.
 app.use('/api/categorias', rotasCategorias);
@@ -103,7 +103,6 @@ app.use((req, res, next) => {
 // ⚠️ DEVE SER SEMPRE O ÚLTIMO middleware registrado!
 // Ele só "acorda" quando uma rota chama next(err) ou joga um erro.
 // =============================================================
-app.use(errorHandler);
 
 // ─── 7. Iniciando o Servidor ──────────────────────────────────
 // Definimos a porta como constante para facilitar a mudança depois.
