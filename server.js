@@ -84,7 +84,9 @@ const rotasSuplementos = require('./routes/produtos');
 
 // app.use('prefixo', router) registra o router com um prefixo de URL.
 app.use('/api/categorias', rotasCategorias);
-app.use('/api/suplementos', rotasSuplementos);
+
+// ALTERADO: Mudei de /api/suplementos para /api/produtos para bater com o que você quer no navegador
+app.use('/api/produtos', rotasSuplementos);
 
 // =============================================================
 // ── NOVO NA AULA 6: Tratamento de Rota não encontrada (404) ──
@@ -103,6 +105,7 @@ app.use((req, res, next) => {
 // ⚠️ DEVE SER SEMPRE O ÚLTIMO middleware registrado!
 // Ele só "acorda" quando uma rota chama next(err) ou joga um erro.
 // =============================================================
+app.use(errorHandler); // <--- ADICIONEI ESSA LINHA PARA O SEU TRATAMENTO DE ERRO FUNCIONAR
 
 // ─── 7. Iniciando o Servidor ──────────────────────────────────
 // Definimos a porta como constante para facilitar a mudança depois.
@@ -118,14 +121,14 @@ app.listen(PORTA, () => {
     console.log('');
     console.log('📋 Rotas disponíveis:');
     console.log(`   GET    /api/categorias`);
-    console.log(`   GET    /api/suplementos`);
-    console.log(`   GET    /api/suplementos/:id`);
-    console.log(`   POST   /api/suplementos`);
-    console.log(`   PUT    /api/suplementos/:id`);
-    console.log(`   DELETE /api/suplementos/:id`);
+    console.log(`   GET    /api/produtos`);
+    console.log(`   GET    /api/produtos/:id`);
+    console.log(`   POST   /api/produtos`);
+    console.log(`   PUT    /api/produtos/:id`);
+    console.log(`   DELETE /api/produtos/:id`);
     console.log('');
     console.log('💣 Rota de teste de erro:');
-    console.log(`   GET    http://localhost:${PORTA}/api/suplementos/erro-teste`);
+    console.log(`   GET    http://localhost:${PORTA}/api/produtos/erro-teste`);
     console.log('');
 });
 
