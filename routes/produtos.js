@@ -1,43 +1,56 @@
 // =============================================================
 // routes/produtos.js — Rotas de Produtos (CRUD Completo)
 // =============================================================
+// O que é CRUD?
+//   Create (POST)   → Criar produto novo
+//   Read   (GET)    → Ler/listar produtos
+//   Update (PUT)    → Atualizar produto existente
+//   Delete (DELETE) → Remover produto
+//
+// Todas as 4 operações estão implementadas aqui!
+// =============================================================
 
 const express = require('express');
 const router = express.Router();
 let db = require('../data/database');
-// ⚠️ Usamos 'let' porque a rota DELETE vai reatribuir db.suplementos
-// (Antes estava db.produtos, o que causava erro pois no database.js o nome é suplementos)
+// ⚠️ Usamos 'let' (não 'const') porque a rota DELETE vai
+//    reatribuir db.suplementos com um novo array filtrado.
 
 // =============================================================
-// ── ROTA DE TESTE DE ERRO
+// ── AULA 6: ROTA ESPECIAL PARA TESTE DE ERRO ─────────────────
 // =============================================================
 router.get('/erro-teste', (req, res) => {
+    // throw new Error() lança um erro intencional.
     throw new Error("O servidor do Haruy Sushi tropeçou!");
 });
 
 // =============================================================
-// ── [GET] /api/produtos (Listar todos ou filtrar)
+// ── [GET] /api/produtos ───────────────────────────────────────
 // =============================================================
 router.get('/', (req, res) => {
+
+    // Tentamos ler o parâmetro "categoriaId" da URL (ex: ?categoriaId=1)
     const categoriaId = req.query.categoriaId;
 
+    // Se o parâmetro foi enviado, filtramos os produtos por categoria
     if (categoriaId) {
-        // CORREÇÃO: Alterado de db.produtos para db.suplementos
+        // CORREÇÃO: trocado db.produtos por db.suplementos
         const produtosFiltrados = db.suplementos.filter(p => p.categoriaId == categoriaId);
         return res.json(produtosFiltrados);
     }
 
-    // CORREÇÃO: Alterado de db.produtos para db.suplementos
+    // CORREÇÃO: trocado db.produtos por db.suplementos
     res.json(db.suplementos);
 });
 
 // =============================================================
-// ── [GET] /api/produtos/:id (Buscar por ID)
+// ── [GET] /api/produtos/:id ───────────────────────────────────
 // =============================================================
 router.get('/:id', (req, res) => {
+
     const produtoId = parseInt(req.params.id);
 
-    // CORREÇÃO: Alterado de db.produtos para db.suplementos
+    // CORREÇÃO: trocado db.produtos por db.suplementos
     const produto = db.suplementos.find(p => p.id === produtoId);
 
     if (produto) {
@@ -48,10 +61,11 @@ router.get('/:id', (req, res) => {
 });
 
 // =============================================================
-// ── [POST] /api/produtos (Criar novo)
+// ── [POST] /api/produtos ──────────────────────────────────────
 // =============================================================
 router.post('/', (req, res) => {
-    // CORREÇÃO: Alterado de db.produtos para db.suplementos
+
+    // CORREÇÃO: trocado db.produtos por db.suplementos
     const novoId = db.suplementos.length > 0
         ? Math.max(...db.suplementos.map(p => p.id)) + 1
         : 1;
@@ -65,23 +79,24 @@ router.post('/', (req, res) => {
         imagem: req.body.imagem
     };
 
-    // CORREÇÃO: Alterado de db.produtos para db.suplementos
+    // CORREÇÃO: trocado db.produtos por db.suplementos
     db.suplementos.push(novoProduto);
 
     res.status(201).json(novoProduto);
 });
 
 // =============================================================
-// ── [PUT] /api/produtos/:id (Atualizar)
+// ── [PUT] /api/produtos/:id ───────────────────────────────────
 // =============================================================
 router.put('/:id', (req, res) => {
+
     const produtoId = parseInt(req.params.id);
 
-    // CORREÇÃO: Alterado de db.produtos para db.suplementos
+    // CORREÇÃO: trocado db.produtos por db.suplementos
     const index = db.suplementos.findIndex(p => p.id === produtoId);
 
     if (index !== -1) {
-        // CORREÇÃO: Alterado de db.produtos para db.suplementos
+        // CORREÇÃO: trocado db.produtos por db.suplementos
         db.suplementos[index] = { ...db.suplementos[index], ...req.body };
         res.json(db.suplementos[index]);
     } else {
@@ -90,12 +105,13 @@ router.put('/:id', (req, res) => {
 });
 
 // =============================================================
-// ── [DELETE] /api/produtos/:id (Remover)
+// ── [DELETE] /api/produtos/:id ────────────────────────────────
 // =============================================================
 router.delete('/:id', (req, res) => {
+
     const produtoId = parseInt(req.params.id);
 
-    // CORREÇÃO: Alterado de db.produtos para db.suplementos
+    // CORREÇÃO: trocado db.produtos por db.suplementos
     db.suplementos = db.suplementos.filter(p => p.id !== produtoId);
 
     res.json({ mensagem: 'Produto deletado com sucesso!' });
