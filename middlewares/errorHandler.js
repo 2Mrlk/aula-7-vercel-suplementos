@@ -1,90 +1,55 @@
 // =============================================================
-// data/database.js — Banco de Dados em Memória (Suplementos)
+// middlewares/errorHandler.js — Middleware de Tratamento de Erros
 // =============================================================
-// O que é este Arquivo?
-//   Um "plano B" (ou atalho didático) para quando não temos um banco
-//   de dados real (como MySQL, PostgreSQL ou MongoDB) configurado.
-//   Sem ele, teríamos que instalar dependências complexas logo de cara, o que
-//   poderia desviar o foco do aprendizado das rotas e da API.
+// O que é este Middleware?
+//   Um "plano B" para quando algo dá errado na API.
+//   Sem ele, se uma rota jogar um erro (throw new Error), o Express
+//   mostraria uma tela feia de erro para o usuário, ou pior: o servidor
+//   poderia travar completamente (crash).
 //
 // Como funciona?
-//   Este é um banco de dados EM MEMÓRIA. Toda vez que uma rota
-//   precisar listar, buscar ou adicionar suplementos, ela vai ler e 
-//   modificar estas variáveis (arrays) do JavaScript.
-//   Assim conseguimos simular um banco de dados de forma simples e direta!
+//   Este é um middleware ESPECIAL de erros. Toda vez que uma rota
+//   chamar next(err) ou jogar um throw new Error(), o Express
+//   pula todas as rotas normais e cai direto AQUI.
+//   Assim conseguimos tratar o erro de forma elegante!
 //
 // Regra de ouro:
-//   ⚠️ Bancos em memória SEMPRE resetam quando o servidor reinicia!
-//   Se você adicionar um novo suplemento (via método POST), ele vai funcionar.
-//   Mas se o servidor reiniciar (ex: Nodemon atualizar), os dados voltam 
-//   exatamente para este estado inicial escrito abaixo.
+//   ⚠️ Middlewares de erro SEMPRE precisam ter EXATAMENTE 4 parâmetros!
+//   Express identifica um middleware de erro pela assinatura (err, req, res, next).
+//   Se tiver 3 parâmetros, ele trata como middleware NORMAL e não vai funcionar.
 //
-// Posição no projeto:
-//   Geralmente fica isolado em uma pasta "data" ou "db".
-//   Ele é importado apenas pelos Controllers ou Rotas que precisam ler
-//   ou alterar as informações dos produtos.
+// Posição no server.js:
+//   Deve ser o ÚLTIMO middleware registrado, depois de todas as rotas.
+//   Assim ele captura erros de qualquer parte da aplicação.
 //
-// Fluxo visual de dados:
-//   Rota (GET /suplementos) → [database.js] → Array de Suplementos → App Mobile
+// Fluxo visual de erro:
+//   Rota com erro → [Error Handler Middleware] → JSON de erro → App Mobile
 // =============================================================
 
-// ─── Tabela de Categorias ─────────────────────────────────────
-//   id   = identificador único da categoria (Primary Key)
-//   nome = o nome da categoria para exibição no aplicativo
-const categorias = [
-    { id: 1, nome: 'Proteínas' },
-    { id: 2, nome: 'Vitaminas' },
-    { id: 3, nome: 'Aminoácidos' },
-    { id: 4, nome: 'Termogênicos' }
-];
+// ─── Middleware de Erro com 4 parâmetros obrigatórios ─────────
+//   err  = o objeto de erro (contém err.message, err.stack, etc.)
+//   req  = a requisição original
+//   res  = a resposta que vamos enviar
+//   next = necessário para o Express reconhecer como middleware de erro
+const errorHandlerMiddleware = (err, req, res, next) => {
 
-// ─── Tabela de Suplementos ────────────────────────────────────
-//   id          = identificador único do produto (Primary Key)
-//   categoriaId = identificador da categoria (Foreign Key - liga os dados)
-//   nome        = título do produto
-//   descricao   = texto explicativo do suplemento
-//   preco       = valor numérico (Float/Double)
-//   imagem      = URL externa para renderizar a foto no Front-end
-const suplementos = [
-    {
-        id: 1,
-        categoriaId: 1,
-        nome: 'Whey Protein',
-        descricao: 'Suplemento de proteína para ganho de massa muscular.',
-        preco: 120.00,
-        imagem: 'https://darklabsuplementos.com.br/cdn/shop/files/whey-protein-concentrado-1kg-pacoca-dark-lab-1.webp?v=1771438025&width=990.jpg'
-    },
-    {
-        id: 2,
-        categoriaId: 2,
-        nome: 'Vitamina C',
-        descricao: 'Auxilia na imunidade e combate radicais livres.',
-        preco: 35.00,
-        imagem: 'https://www.gsuplementos.com.br/upload/produto/layout/174/mockup.webp'
-    },
-    {
-        id: 3,
-        categoriaId: 3,
-        nome: 'BCAA',
-        descricao: 'Aminoácidos essenciais para recuperação muscular.',
-        preco: 75.00,
-        imagem: 'https://www.gsuplementos.com.br/upload/produto/layout/25/bcaa-2-1-1-120comp-growth-supplements-v2.webp'
-    },
-    {
-        id: 4,
-        categoriaId: 4,
-        nome: 'Cafeína',
-        descricao: 'Termogênico para aumento de energia e foco.',
-        preco: 40.00,
-        imagem: 'https://www.gsuplementos.com.br/upload/produto/layout/2042/cafeina-200-mg-120-comp-growth-supplements-v2.webp'
-    }
-];
+    // Loga o erro no terminal do servidor para o DESENVOLVEDOR ver.
+    // Isso não aparece para o usuário final, só no VS Code!
+    console.error(`❌ Erro detectado: ${err.message}`);
+
+    // Retorna uma resposta JSON com:
+    //   - Status HTTP 500 (Internal Server Error — erro interno do servidor)
+    //   - Um objeto JSON com informações do erro
+    res.status(500).json({
+        sucesso: false,
+        mensagem: "Ops! Ocorreu um erro interno no servidor.",
+
+        // ⚠️ ATENÇÃO: Em uma aplicação REAL, nunca exponha detalhes do erro
+        // para o usuário (pode revelar informações sensíveis do servidor).
+        // Aqui mandamos o detalhe apenas para fins DIDÁTICOS, para ver na tela!
+        detalhe: err.message
+    });
+};
 
 // ─── Exportação ───────────────────────────────────────────────
-// Exportamos tudo em um único objeto.
-// Em outros arquivos, podemos importar usando desestruturação:
-// Ex: const { suplementos, categorias } = require('./database');
-module.exports = {
-    categorias,
-    suplementos
-};
+module.exports = errorHandlerMiddleware;

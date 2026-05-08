@@ -2,7 +2,7 @@
 // middlewares/logger.js — Middleware de Log (Supervisão)
 // =============================================================
 // O que é um Middleware?
-//   Pense num Middleware como um SEGURANÇA ou SUPERVISOR na entrada
+//   Pense num Middleware como um SEGURANÇA ou SUPERVISORA na entrada
 //   de um restaurante. Toda requisição que chega ao servidor passa
 //   por ele ANTES de chegar na rota de destino.
 //
@@ -21,29 +21,27 @@
 // =============================================================
 
 // ─── Definição do Middleware de Log ───────────────────────────
-// Um middleware do Express sempre recebe 3 parâmetros básicos:
-//   req  = objeto da requisição (os dados do "pedido" que chegou)
-//   res  = objeto da resposta (as ferramentas para devolver algo)
-//   next = função que "empurra" a requisição para o próximo passo
+// Um middleware do Express sempre recebe 3 parâmetros:
+//   req  = objeto da requisição (o "pedido" que chegou)
+//   res  = objeto da resposta (o que vamos devolver)
+//   next = função que manda a requisição continuar para o próximo passo
 const loggerMiddleware = (req, res, next) => {
 
-    // Pegamos a hora atual formatada para o padrão brasileiro (ex: 14:30:05)
+    // Pegamos a hora atual e formatamos como string legível (ex: "10:30:45")
     const horaAtual = new Date().toLocaleTimeString('pt-BR');
 
-    // Exibimos no terminal do servidor (VS Code):
-    //   - A hora exata do acesso entre colchetes
-    //   - O Método HTTP (GET, POST, etc.)
-    //   - A URL/Rota que o usuário tentou acessar
+    // Mostramos no terminal:
+    //   - O método HTTP (GET, POST, PUT, DELETE)
+    //   - A URL da rota acessada (ex: /api/produtos)
+    // Template string com ${} para inserir as variáveis na mensagem
     console.log(`[${horaAtual}] 📋 Requisição recebida: ${req.method} ${req.url}`);
 
-    // ⚠️ REGRA DE OURO: Chamar o next() é obrigatório!
-    // Se você esquecer o next(), a requisição morre aqui, o navegador 
-    // do usuário vai ficar carregando infinitamente e o app trava.
-    // O next() diz: "Tudo certo por aqui, pode seguir para a rota!"
+    // ⚠️ MUITO IMPORTANTE: next() é obrigatório!
+    // Sem chamar next(), a requisição fica presa aqui e o app trava.
+    // É next() que faz a requisição continuar o caminho até a rota certa.
     next();
 };
 
 // ─── Exportação ───────────────────────────────────────────────
-// Exportamos a função para que o seu arquivo principal (geralmente server.js
-// ou app.js) possa importar e aplicar esse filtro em todas as rotas.
+// Exportamos a função para que o server.js possa importar e usar.
 module.exports = loggerMiddleware;

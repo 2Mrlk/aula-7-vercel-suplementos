@@ -1,73 +1,40 @@
-// =============================================================
-// routes/categorias.js — Rotas de Categorias (Suplementos)
-// =============================================================
-// O que são Rotas?
-//   Rotas definem os "endereços" da nossa API e o que acontece
-//   quando alguém acessa cada endereço (URL).
-//
-// O que é um Router?
-//   O express.Router() funciona como um "mini-aplicativo" Express. 
-//   Ele permite separar as rotas em arquivos diferentes por assunto 
-//   (categorias, suplementos, usuários), mantendo o projeto organizado.
-//
-// Prefixo de rotas:
-//   Se no server.js registrarmos este arquivo em '/api/categorias',
-//   a rota '/' escrita aqui será acessada como '/api/categorias'.
-// =============================================================
-
 const express = require('express');
-
-// ─── Criação do Router ────────────────────────────────────────
-// Iniciamos o roteador para gerenciar os endpoints de categorias.
 const router = express.Router();
+const supabase = require('../data/supabase'); // Importação padronizada do banco em memória
 
-// ─── Importação do banco de dados ────────────────────────────
-// Buscamos os dados em memória que estão na pasta /data.
-// '../' sobe um nível na pasta para encontrar o arquivo correto.
-const db = require('../data/database');
+// Listar todas as categorias
+router.get('/', async (req, res) => {
+    try{
+        const { data, error } = await supabase
+        .from('categorias')
+        .select('*')
+        .order('id', { ascending: true });
+        if (error) {
+        throw error;
+        }
+        res.json(data);
+    }catch (error) {
+        next(error);
+    }
 
-// ─── [GET] /api/categorias ────────────────────────────────────
-// Retorna a lista de todas as categorias de suplementos cadastradas.
-//
-// Teste no Thunder Client / Insomnia:
-//   Método: GET
-//   URL: http://localhost:3000/api/categorias
-//
-// Resposta esperada:
-//   [ { "id": 1, "nome": "Proteínas" }, { "id": 2, "nome": "Vitaminas" } ]
-router.get('/', (req, res) => {
-    // Pegamos o array 'categorias' de dentro do nosso arquivo db (database.js)
-    // e enviamos de volta para quem pediu.
-    res.json(db.categorias);
-});
+})
 
-// ─── [POST] /api/categorias ───────────────────────────────────
-// Permite cadastrar uma nova categoria de suplementos.
-//
-// Teste no Thunder Client / Insomnia:
-//   Método: POST
-//   URL: http://localhost:3000/api/categorias
-//   Body (JSON): { "nome": "Acessórios" }
-//
-// Resposta esperada (status 201 Created):
-//   { "id": 5, "nome": "Acessórios" }
-router.post('/', (req, res) => {
-    // Montamos o objeto da nova categoria:
-    const novaCategoria = {
-        // Cálculo simples de ID: pegamos o total de itens e somamos 1
-        id: db.categorias.length + 1, 
-        
-        // O nome vem de dentro do 'body' da requisição (o JSON enviado)
-        nome: req.body.nome 
-    };
+router.post('/', async (req, res) => {
+    try{
+        const { data, error } = await supabase
+        .from('categorias')
+        .insert([{ nome: req.body.nome }])
+        .select();
 
-    // Salvamos a nova categoria no nosso array em memória
-    db.categorias.push(novaCategoria);
+        if (error) throw error;
+        res.status(201).json(data[0]);
+    }catch (error) {
+        next(error);
+    }
 
-    // Retornamos o status 201 (Sucesso ao criar) e o objeto criado
-    res.status(201).json(novaCategoria);
-});
+})
 
-// ─── Exportação do Router ─────────────────────────────────────
-// Tornamos este roteador disponível para ser importado no server.js.
+
+
+// Criar nova categoria com ID incremental
 module.exports = router;
