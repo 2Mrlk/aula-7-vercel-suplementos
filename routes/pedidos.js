@@ -8,7 +8,7 @@ router.get('/', async (req, res, next) => {
         const { data, error } = await supabase
             .from('pedidos')
             .select('*')
-            .order('id', { ascending: false });
+            .order('created_at', { ascending: false });
 
         if (error) throw error;
         res.json(data);
@@ -20,11 +20,18 @@ router.get('/', async (req, res, next) => {
 // POST /api/pedidos — registra um novo pedido
 router.post('/', async (req, res, next) => {
     try {
-        const { produto_id, produto_nome, preco } = req.body;
+        const { cliente_nome, cliente_endereco, itens, total } = req.body;
+
+        if (!cliente_nome || !cliente_endereco || !itens || total == null) {
+            return res.status(400).json({
+                sucesso: false,
+                mensagem: 'cliente_nome, cliente_endereco, itens e total são obrigatórios'
+            });
+        }
 
         const { data, error } = await supabase
             .from('pedidos')
-            .insert([{ produto_id: produto_id || null, produto_nome, preco }])
+            .insert([{ cliente_nome, cliente_endereco, itens, total, status: 'pendente' }])
             .select();
 
         if (error) throw error;
