@@ -1,40 +1,35 @@
 const express = require('express');
 const router = express.Router();
-const supabase = require('../data/supabase'); // Importação padronizada do banco em memória
+const supabase = require('../data/supabase');
 
-// Listar todas as categorias
-router.get('/', async (req, res) => {
-    try{
+// GET /api/categorias — lista todas as categorias
+router.get('/', async (req, res, next) => {
+    try {
         const { data, error } = await supabase
-        .from('categorias')
-        .select('*')
-        .order('id', { ascending: true });
-        if (error) {
-        throw error;
-        }
+            .from('categorias')
+            .select('*')
+            .order('id', { ascending: true });
+
+        if (error) throw error;
         res.json(data);
-    }catch (error) {
-        next(error);
+    } catch (err) {
+        next(err);
     }
+});
 
-})
-
-router.post('/', async (req, res) => {
-    try{
+// POST /api/categorias — cria uma nova categoria
+router.post('/', async (req, res, next) => {
+    try {
         const { data, error } = await supabase
-        .from('categorias')
-        .insert([{ nome: req.body.nome }])
-        .select();
+            .from('categorias')
+            .insert([{ nome: req.body.nome }])
+            .select();
 
         if (error) throw error;
         res.status(201).json(data[0]);
-    }catch (error) {
-        next(error);
+    } catch (err) {
+        next(err);
     }
+});
 
-})
-
-
-
-// Criar nova categoria com ID incremental
 module.exports = router;
