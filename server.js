@@ -1,116 +1,268 @@
+
+Copiar
+
+require('dotenv').config();
 const express = require('express');
-
-const cors = require('cors');
-
-// ─── 2. Importação dos Middlewares Customizados ───────────────
-// São os arquivos que criamos na pasta /middlewares
-
-// Logger: registra no terminal toda requisição que chega
-const logger = require('./middlewares/logger');
-
-// ErrorHandler: captura qualquer erro não tratado nas rotas
+const cors    = require('cors');
+const { createClient } = require('@supabase/supabase-js');
+ 
+// ─── Middlewares Customizados ─────────────────────────────────
+const logger       = require('./middlewares/logger');
 const errorHandler = require('./middlewares/errorHandler');
-
-
-// ─── 3. Criação da Aplicação Express ─────────────────────────
-// app é o nosso "servidor". É nele que registramos middlewares e rotas.
+ 
+// ─── Criação da Aplicação Express ────────────────────────────
 const app = express();
-
-
-// ─── 4. Middlewares Globais do Express ────────────────────────
-// app.use() registra um middleware para TODAS as requisições.
-// A ORDEM importa! Eles são executados de cima para baixo.
-
-// Habilita CORS (Cross-Origin Resource Sharing).
-// Sem isso, o browser bloquearia chamadas do App Mobile para nossa API.
+ 
+// ─── Supabase ─────────────────────────────────────────────────
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
+ 
+// ─── Middlewares Globais ──────────────────────────────────────
 app.use(cors());
-
-// Habilita a leitura de JSON no corpo das requisições (req.body).
-// Sem isso, req.body seria undefined em POST e PUT.
 app.use(express.json());
-
-// =============================================================
-// ── NOVO NA AULA 6: Middleware de Log ─────────────────────────
-// Vem APÓS os middlewares do Express, mas ANTES das rotas.
-// Assim toda requisição passa pelo logger antes de chegar nas rotas.
-// =============================================================
-app.use(logger);
-
-
-// ─── 5. Rota de Boas-Vindas ───────────────────────────────────
-// Rota raiz — útil para verificar se o servidor está no ar.
-// Acesse: http://localhost:3000
-app.get('/', (req, res) => {
-    res.json({ mensagem: ' Bem-vindo à API do Haruy Sushi! (Aula 6)' });
+app.use(logger); // vem após os middlewares do Express, mas antes das rotas
+ 
+// ─── Rota de Boas-Vindas / Health Check ──────────────────────
+app.get('/', (_req, res) => {
+  res.json({ mensagem: '💪 Bem-vindo à API de Suplementos!' });
 });
-
-
-// ─── 6. Importação e Registro das Rotas ───────────────────────
-// Importamos os arquivos de rota da pasta /routes
-const rotasCategorias = require('./routes/categorias');
-const rotasProdutos = require('./routes/produtos');
-const rotasPedidos = require('./routes/pedidos');
-// app.use('prefixo', router) registra o router com um prefixo de URL.
-// Toda rota definida dentro de categorias.js ficará em /api/categorias/...
-// Toda rota definida dentro de produtos.js ficará em /api/produtos/...
-app.use('/api/categorias', rotasCategorias);
-app.use('/api/produtos', rotasProdutos);
-app.use('/api/pedidos', rotasPedidos);
-
-
-// =============================================================
-// ── NOVO NA AULA 6: Tratamento de Rota não encontrada (404) ──
-// Este middleware DEVE vir DEPOIS de todas as rotas registradas.
-// Se a requisição chegou até aqui, nenhuma rota correspondeu.
-// Isso é o nosso "rota não encontrada" personalizado.
-//
-// Exemplo: GET /api/batata → cai aqui!
-// =============================================================
-app.use((req, res, next) => {
-    res.status(404).json({
-        sucesso: false,
-        mensagem: `Rota '${req.url}' não encontrada na API do Haruy Sushi.`
-    });
+ 
+app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+ 
+// ─────────────────────────────────────────────────────────────
+// CORREIO ELEGANTE
+// ─────────────────────────────────────────────────────────────
+ 
+// GET /correio  – lista os últimos 10 correios
+app.get('/correio', async (_req, res, next) => {
+  try {
+    const { data, error } = await supabase
+      .from('correio_elegante')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(10);
+ 
+    if (error) return res.status(500).json({ sucesso: false, erro: error.message });
+    res.json({ sucesso: true, dados: data });
+  } catch (err) {
+    next(err);
+  }
 });
-
-
-// =============================================================
-// ── NOVO NA AULA 6: Middleware de Erros Global ────────────────
-// ⚠️ DEVE SER SEMPRE O ÚLTIMO middleware registrado!
-// Ele só "acorda" quando uma rota chama next(err) ou joga throw new Error().
-// Como tem 4 parâmetros (err, req, res, next), o Express sabe que é
-// um middleware de erro e chama automaticamente em caso de problema.
-// =============================================================
+ 
+// POST /correio  – cria um novo correio
+app.post('/correio', async (req, res, next) => {
+  try {
+    const { from_name, to_name, message, theme, anonymous } = req.body;
+ 
+    if (!to_name) {
+      return res.status(400).json({ sucesso: false, erro: 'to_name é obrigatório' });
+    }
+ 
+    const { data, error } = await supabase
+      .from('correio_elegante')
+      .insert({
+        from_name: anonymous ? null : (from_name || null),
+        to_name,
+        message: message || null,
+        theme,
+        anonymous,
+      })
+      .select()
+      .single();
+ 
+    if (error) return res.status(500).json({ sucesso: false, erro: error.message });
+    res.status(201).json({ sucesso: true, dados: data });
+  } catch (err) {
+    next(err);
+  }
+});
+ 
+// DELETE /correio/:id  – remove um correio
+app.delete('/correio/:id', async (req, res, next) => {
+  try {
+    const { error } = await supabase
+      .from('correio_elegante')
+      .delete()
+      .eq('id', req.params.id);
+ 
+    if (error) return res.status(500).json({ sucesso: false, erro: error.message });
+    res.json({ sucesso: true, deletado: true });
+  } catch (err) {
+    next(err);
+  }
+});
+ 
+// ─────────────────────────────────────────────────────────────
+// PRODUTOS
+// ─────────────────────────────────────────────────────────────
+ 
+// GET /produtos  – lista todos os produtos
+app.get('/produtos', async (_req, res, next) => {
+  try {
+    const { data, error } = await supabase
+      .from('produtos')
+      .select('*')
+      .order('destaque', { ascending: false })
+      .order('created_at');
+ 
+    if (error) return res.status(500).json({ sucesso: false, erro: error.message });
+    res.json({ sucesso: true, dados: data });
+  } catch (err) {
+    next(err);
+  }
+});
+ 
+// GET /produtos/:id  – busca um produto específico
+app.get('/produtos/:id', async (req, res, next) => {
+  try {
+    const { data, error } = await supabase
+      .from('produtos')
+      .select('*')
+      .eq('id', req.params.id)
+      .single();
+ 
+    if (error) return res.status(404).json({ sucesso: false, erro: 'Produto não encontrado' });
+    res.json({ sucesso: true, dados: data });
+  } catch (err) {
+    next(err);
+  }
+});
+ 
+// POST /produtos  – cria um produto
+app.post('/produtos', async (req, res, next) => {
+  try {
+    const { nome, descricao, preco, imagem_url, destaque } = req.body;
+ 
+    if (!nome || preco == null) {
+      return res.status(400).json({ sucesso: false, erro: 'nome e preco são obrigatórios' });
+    }
+ 
+    const { data, error } = await supabase
+      .from('produtos')
+      .insert({ nome, descricao, preco, imagem_url, destaque: !!destaque })
+      .select()
+      .single();
+ 
+    if (error) return res.status(500).json({ sucesso: false, erro: error.message });
+    res.status(201).json({ sucesso: true, dados: data });
+  } catch (err) {
+    next(err);
+  }
+});
+ 
+// PUT /produtos/:id  – atualiza um produto
+app.put('/produtos/:id', async (req, res, next) => {
+  try {
+    const { nome, descricao, preco, imagem_url, destaque } = req.body;
+ 
+    const { data, error } = await supabase
+      .from('produtos')
+      .update({ nome, descricao, preco, imagem_url, destaque })
+      .eq('id', req.params.id)
+      .select()
+      .single();
+ 
+    if (error) return res.status(500).json({ sucesso: false, erro: error.message });
+    res.json({ sucesso: true, dados: data });
+  } catch (err) {
+    next(err);
+  }
+});
+ 
+// DELETE /produtos/:id  – remove um produto
+app.delete('/produtos/:id', async (req, res, next) => {
+  try {
+    const { error } = await supabase
+      .from('produtos')
+      .delete()
+      .eq('id', req.params.id);
+ 
+    if (error) return res.status(500).json({ sucesso: false, erro: error.message });
+    res.json({ sucesso: true, deletado: true });
+  } catch (err) {
+    next(err);
+  }
+});
+ 
+// ─────────────────────────────────────────────────────────────
+// PEDIDOS
+// ─────────────────────────────────────────────────────────────
+ 
+// GET /pedidos  – lista todos os pedidos
+app.get('/pedidos', async (_req, res, next) => {
+  try {
+    const { data, error } = await supabase
+      .from('pedidos')
+      .select('*')
+      .order('created_at', { ascending: false });
+ 
+    if (error) return res.status(500).json({ sucesso: false, erro: error.message });
+    res.json({ sucesso: true, dados: data });
+  } catch (err) {
+    next(err);
+  }
+});
+ 
+// POST /pedidos  – registra um pedido (adicionar ao carrinho)
+app.post('/pedidos', async (req, res, next) => {
+  try {
+    const { produto_id, produto_nome, preco } = req.body;
+ 
+    const { data, error } = await supabase
+      .from('pedidos')
+      .insert({ produto_id: produto_id || null, produto_nome, preco })
+      .select()
+      .single();
+ 
+    if (error) return res.status(500).json({ sucesso: false, erro: error.message });
+    res.status(201).json({ sucesso: true, dados: data });
+  } catch (err) {
+    next(err);
+  }
+});
+ 
+// ─────────────────────────────────────────────────────────────
+// Rota não encontrada (404) — DEVE vir depois de todas as rotas
+// ─────────────────────────────────────────────────────────────
+app.use((req, res, _next) => {
+  res.status(404).json({
+    sucesso: false,
+    mensagem: `Rota '${req.url}' não encontrada na API de Suplementos.`,
+  });
+});
+ 
+// ─────────────────────────────────────────────────────────────
+// Middleware de Erros Global — DEVE ser o último middleware
+// ─────────────────────────────────────────────────────────────
 app.use(errorHandler);
-
-
-// ─── 7. Iniciando o Servidor ──────────────────────────────────
-// Definimos a porta como constante para facilitar a mudança depois.
-const PORTA = process.env.PORT ||3000;
-
-// app.listen() só roda em ambiente local (não na Vercel).
-// Na Vercel, ela importa o app diretamente via module.exports.
-if (process.env.VERCEL !== '1') {
-    app.listen(PORTA, () => {
-        console.log('');
-        console.log('🚀 ================================');
-        console.log(`🚀 Servidor rodando!`);
-        console.log(`🚀 Porta local: ${PORTA}`);
-        console.log('🚀 ================================');
-        console.log('');
-        console.log('📋 Rotas disponíveis:');
-        console.log(`   GET    /api/categorias`);
-        console.log(`   POST   /api/categorias`);
-        console.log(`   GET    /api/produtos`);
-        console.log(`   GET    /api/produtos/:id`);
-        console.log(`   POST   /api/produtos`);
-        console.log(`   PUT    /api/produtos/:id`);
-        console.log(`   DELETE /api/produtos/:id`);
-        console.log('');
-        console.log('💣 Rota de teste de erro:');
-        console.log(`   GET    http://localhost:${PORTA}/api/produtos/erro-teste`);
-        console.log('');
-    });
-}
-
+ 
+// ─────────────────────────────────────────────────────────────
+// Iniciando o Servidor
+// ─────────────────────────────────────────────────────────────
+const PORT = process.env.PORT || 3001;
+ 
+app.listen(PORT, () => {
+  console.log('');
+  console.log('💪 ================================');
+  console.log('💪 Suplementos API rodando!');
+  console.log(`💪 Porta local: ${PORT}`);
+  console.log('💪 ================================');
+  console.log('');
+  console.log('📋 Rotas disponíveis:');
+  console.log(`   GET    /health`);
+  console.log(`   GET    /correio`);
+  console.log(`   POST   /correio`);
+  console.log(`   DELETE /correio/:id`);
+  console.log(`   GET    /produtos`);
+  console.log(`   GET    /produtos/:id`);
+  console.log(`   POST   /produtos`);
+  console.log(`   PUT    /produtos/:id`);
+  console.log(`   DELETE /produtos/:id`);
+  console.log(`   GET    /pedidos`);
+  console.log(`   POST   /pedidos`);
+  console.log('');
+});
+ 
 module.exports = app;
