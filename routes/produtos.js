@@ -11,13 +11,13 @@ router.get('/erro-teste', (req, res) => {
 router.get('/', async (req, res, next) => {
     try {
         const { categoriaId } = req.query;
-        let consulta = supabase.from('produtos').select('*');
+        let consulta = supabase.from('produtos').select('*, categorias(nome)');
 
         if (categoriaId) {
-            consulta = consulta.eq('categoriaId', categoriaId);
+            consulta = consulta.eq('categoria_id', categoriaId); // corrigido: era 'categoriaId'
         }
 
-        const { data, error } = await consulta.order('id', { ascending: true }); // corrigido: era 'ascendir'
+        const { data, error } = await consulta.order('criado_em', { ascending: true });
 
         if (error) throw error;
         res.json(data);
@@ -27,12 +27,12 @@ router.get('/', async (req, res, next) => {
 });
 
 // GET /api/produtos/:id — busca um produto específico
-router.get('/:id', async (req, res, next) => { // corrigido: faltava o next
+router.get('/:id', async (req, res, next) => {
     try {
         const { id } = req.params;
         const { data, error } = await supabase
             .from('produtos')
-            .select('*')
+            .select('*, categorias(nome)')
             .eq('id', id)
             .maybeSingle();
 
@@ -48,7 +48,7 @@ router.get('/:id', async (req, res, next) => { // corrigido: faltava o next
 });
 
 // POST /api/produtos — cria um produto
-router.post('/', async (req, res, next) => { // corrigido: faltava o next
+router.post('/', async (req, res, next) => {
     try {
         const { data, error } = await supabase
             .from('produtos')
