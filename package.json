@@ -1,19 +1,19 @@
 {
-    "name": "backend-haruy-sushi",
+    "name": "backend-suplementos",
     "version": "1.0.0",
-    "description": "API REST Haruy Sushi — Aula 6: Middlewares e Tratamento de Erros",
+    "description": "API REST Suplementos — Aula 7: Deploy na Vercel com Supabase",
     "main": "server.js",
     "scripts": {
         "start": "node server.js",
         "dev": "nodemon server.js"
     },
     "keywords": [
-        "api",
+        "AMO",
         "sushi",
         "backend",
-        "middleware"
+        "Dudufit"
     ],
-    "author": "Adriano",
+    "author": "Miguel",
     "license": "ISC",
     "dependencies": {
         "@supabase/supabase-js": "^2.99.3",
