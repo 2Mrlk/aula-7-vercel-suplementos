@@ -11,10 +11,10 @@ router.get('/erro-teste', (req, res) => {
 router.get('/', async (req, res, next) => {
     try {
         const { categoriaId } = req.query;
-        let consulta = supabase.from('produtos').select('*, categorias(nome)');
+        let consulta = supabase.from('produtos').select('*');
 
         if (categoriaId) {
-            consulta = consulta.eq('categoria_id', categoriaId); // corrigido: era 'categoriaId'
+            consulta = consulta.eq('categoria_id', categoriaId);
         }
 
         const { data, error } = await consulta.order('criado_em', { ascending: true });
@@ -32,7 +32,7 @@ router.get('/:id', async (req, res, next) => {
         const { id } = req.params;
         const { data, error } = await supabase
             .from('produtos')
-            .select('*, categorias(nome)')
+            .select('*')
             .eq('id', id)
             .maybeSingle();
 
